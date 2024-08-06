@@ -1,0 +1,16 @@
+dominate
+kaldi_native_fbank
+librosa
+mediapipe
+opencv_python
+pandas
+Pillow
+Requests
+scipy
+sounddevice
+thop
+tqdm
+uvicorn
+visdom
+wandb
+numpy==1.26.0
