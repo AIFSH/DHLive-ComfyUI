@@ -1,7 +1,7 @@
 dominate
 kaldi_native_fbank
 librosa
-mediapipe
+mediapipe==0.10.11
 opencv_python
 pandas
 Pillow
