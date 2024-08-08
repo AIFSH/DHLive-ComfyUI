@@ -21,4 +21,4 @@ pip install -r requirements.txt
 ```
 
 ## Tutorial
-todo
+【这个工作流可以让你的宠物开口说话 | 云端镜像-哔哩哔哩】 https://b23.tv/jVlbZzT
