@@ -64,7 +64,10 @@ class DHLiveNode:
                 "video":("VIDEO",),
                 "if_data_preparation":("BOOLEAN",{
                     "default":True
-                })
+                }),
+                "if_upscale":("BOOLEAN",{
+                    "default":True
+                }),
             }
         }
     
@@ -77,10 +80,11 @@ class DHLiveNode:
 
     CATEGORY = "AIFSH_DHLive"
 
-    def generate(self,audio,video,if_data_preparation):
+    def generate(self,audio,video,if_data_preparation,if_upscale):
         ## 1. data preparation
         video_data_path = os.path.join(work_dir,"video_data")
         if if_data_preparation:
+            shutil.rmtree(video_data_path,ignore_errors=True)
             os.makedirs(video_data_path,exist_ok=True)
             video_out_path = os.path.join(video_data_path,"circle.mp4")
             CirculateVideo(video_in_path=video,video_out_path=video_out_path)
@@ -92,6 +96,14 @@ class DHLiveNode:
 
             self.renderModel = RenderModel()
             self.renderModel.loadModel(os.path.join(checkpoints_dir,"render.pth"))
+
+            if if_upscale:
+                from aura_sr import AuraSR
+                from huggingface_hub import snapshot_download
+                model_path = os.path.join(now_dir,"AuraSR")
+                snapshot_download(repo_id="fal/AuraSR-v2",local_dir=model_path,
+                                  ignore_patterns=["*.ckpt"])
+                self.aurasr = AuraSR.from_pretrained(os.path.join(model_path,"model.safetensors"))
         else:
             self.audioModel.reset()
         pkl_path = "{}/keypoint_rotate.pkl".format(video_data_path)
@@ -120,6 +132,12 @@ class DHLiveNode:
         videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
         for frame in tqdm(mouth_frame):
             frame = self.renderModel.interface(frame)
+            if if_upscale:
+                frame_img = Image.fromarray(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)) 
+                org_w, org_h = frame_img.size
+                frame_img = frame_img.resize((org_w//4,org_h//4))
+                frame_4x_img = self.aurasr.upscale_4x_overlapped(frame_img)
+                frame =  cv2.cvtColor(np.asarray(frame_4x_img),cv2.COLOR_RGB2BGR)
             # cv2.imshow("s", frame)
             # cv2.waitKey(40)
 
