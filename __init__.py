@@ -151,9 +151,10 @@ class DHLiveNode:
 
 WEB_DIRECTORY = "./web"
 
-from .util_nodes import PreViewVideo, LoadVideo
+from .util_nodes import PreViewVideo, LoadVideo,CombineVideo
 
 NODE_CLASS_MAPPINGS = {
+    "CombineVideo":CombineVideo,
     "LoadVideo":LoadVideo,
     "PreViewVideo":PreViewVideo, 
     "DHLiveNode": DHLiveNode,
