@@ -135,7 +135,7 @@ class DHLiveNode:
             if if_upscale:
                 frame_img = Image.fromarray(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)) 
                 org_w, org_h = frame_img.size
-                frame_img = frame_img.resize((org_w//4,org_h//4))
+                frame_img = frame_img.resize((org_w//2,org_h//2))
                 frame_4x_img = self.aurasr.upscale_4x_overlapped(frame_img)
                 frame =  cv2.cvtColor(np.asarray(frame_4x_img),cv2.COLOR_RGB2BGR)
             # cv2.imshow("s", frame)
