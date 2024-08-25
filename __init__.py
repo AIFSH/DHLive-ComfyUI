@@ -53,9 +53,6 @@ class StaticVideo:
 prompt_sr = 16000
 class DHLiveNode:
 
-    def __init__(self) -> None:
-        self.audioModel = None
-
     @classmethod
     def INPUT_TYPES(s):
         return {
@@ -90,25 +87,26 @@ class DHLiveNode:
             CirculateVideo(video_in_path=video,video_out_path=video_out_path)
 
         ## 
-        if self.audioModel is None:
-            self.audioModel = AudioModel()
-            self.audioModel.loadModel(os.path.join(checkpoints_dir,"audio.pkl"))
+        
+        audioModel = AudioModel()
+        audioModel.loadModel(os.path.join(checkpoints_dir,"audio.pkl"))
 
-            self.renderModel = RenderModel()
-            self.renderModel.loadModel(os.path.join(checkpoints_dir,"render.pth"))
+        renderModel = RenderModel()
+        renderModel.loadModel(os.path.join(checkpoints_dir,"render.pth"))
 
-            if if_upscale:
-                from aura_sr import AuraSR
-                from huggingface_hub import snapshot_download
-                model_path = os.path.join(now_dir,"AuraSR")
-                snapshot_download(repo_id="fal/AuraSR-v2",local_dir=model_path,
-                                  ignore_patterns=["*.ckpt"])
-                self.aurasr = AuraSR.from_pretrained(os.path.join(model_path,"model.safetensors"))
-        else:
-            self.audioModel.reset()
+
+        
+        if if_upscale:
+            from aura_sr import AuraSR
+            from huggingface_hub import snapshot_download
+            model_path = os.path.join(now_dir,"AuraSR")
+            snapshot_download(repo_id="fal/AuraSR-v2",local_dir=model_path,
+                                ignore_patterns=["*.ckpt"])
+            self.aurasr = AuraSR.from_pretrained(os.path.join(model_path,"model.safetensors"))
+
         pkl_path = "{}/keypoint_rotate.pkl".format(video_data_path)
         video_path = "{}/circle.mp4".format(video_data_path)
-        self.renderModel.reset_charactor(video_path, pkl_path)
+        renderModel.reset_charactor(video_path, pkl_path)
 
         waveform = audio['waveform'].squeeze(0)
         source_sr = audio['sample_rate']
@@ -117,7 +115,7 @@ class DHLiveNode:
             speech = torchaudio.transforms.Resample(orig_freq=source_sr, new_freq=prompt_sr)(speech)
         wavpath = os.path.join(ouput_dir,"tmp.wav")
         torchaudio.save(wavpath,speech,prompt_sr,format="wav")
-        mouth_frame = self.audioModel.interface_wav(speech.numpy()[0])
+        mouth_frame = audioModel.interface_wav(speech.numpy()[0])
 
         cap_input = cv2.VideoCapture(video_path)
         vid_width = cap_input.get(cv2.CAP_PROP_FRAME_WIDTH)  # 宽度
@@ -131,11 +129,11 @@ class DHLiveNode:
         save_path = os.path.join(task_id_path,"silence.mp4")
         videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
         for frame in tqdm(mouth_frame):
-            frame = self.renderModel.interface(frame)
+            frame = renderModel.interface(frame)
             if if_upscale:
                 frame_img = Image.fromarray(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)) 
                 org_w, org_h = frame_img.size
-                frame_img = frame_img.resize((org_w//2,org_h//2))
+                frame_img = frame_img.resize((org_w//4,org_h//4),Image.Resampling.BICUBIC)
                 frame_4x_img = self.aurasr.upscale_4x_overlapped(frame_img)
                 frame =  cv2.cvtColor(np.asarray(frame_4x_img),cv2.COLOR_RGB2BGR)
             # cv2.imshow("s", frame)
