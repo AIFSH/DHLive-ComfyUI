@@ -1,6 +1,6 @@
 import os.path
 import torch
-import os
+import os,sys
 import numpy as np
 import time
 from talkingface.run_utils import smooth_array, video_pts_process
@@ -11,9 +11,10 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 import pickle
 import cv2
 
-
 face_mask = generate_face_mask()
-
+now_dir = os.path.dirname(os.path.abspath(__file__))
+ckpt_dir = os.path.join(os.path.dirname(now_dir),"checkpoint")
+sys.path.append(now_dir)
 
 class RenderModel:
     def __init__(self):
@@ -27,6 +28,7 @@ class RenderModel:
         self.__cap_input = None
         self.frame_index = 0
         self.__mouth_coords_array = None
+        self.codeformer_net = None
 
     def loadModel(self, ckpt_path):
         from talkingface.models.DINet import DINet_five_Ref as DINet
@@ -73,7 +75,7 @@ class RenderModel:
 
 
 
-    def interface(self, mouth_frame):
+    def interface(self, mouth_frame,if_upscale):
         vid_frame_count = self.__cap_input.get(cv2.CAP_PROP_FRAME_COUNT)
         if self.frame_index % vid_frame_count == 0:
             self.__cap_input.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 设置要获取的帧号
@@ -108,9 +110,64 @@ class RenderModel:
         x_min, y_min, x_max, y_max = crop_coords
 
         img_face = cv2.resize(image_numpy, (x_max - x_min, y_max - y_min))
-        img_bg[y_min:y_max, x_min:x_max] = img_face
+        if if_upscale:
+            upscale_img_face = self.codeformer(img_face)
+            try:
+                img_bg[y_min:y_max, x_min:x_max] = upscale_img_face
+            except:
+                img_bg[y_min:y_max, x_min:x_max] = img_face
+        else:
+            img_bg[y_min:y_max, x_min:x_max] = img_face
         self.frame_index += 1
         return img_bg
 
     def save(self, path):
         torch.save(self.__net.state_dict(), path)
+    
+    def codeformer(self,img_face):
+        import torch
+        from torchvision.transforms.functional import normalize
+        from basicsr.utils import imwrite, img2tensor, tensor2img
+        from basicsr.utils.download_util import load_file_from_url
+        from basicsr.utils.registry import ARCH_REGISTRY
+        pretrain_model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer_inpainting.pth' 
+        if self.codeformer_net is None:
+            self.codeformer_net = ARCH_REGISTRY.get('CodeFormer')(dim_embd=512, codebook_size=512, n_head=8, n_layers=9, 
+                                                connect_list=['32', '64', '128']).to(device)
+            ckpt_path = load_file_from_url(url=pretrain_model_url, 
+                                        model_dir=ckpt_dir, progress=True, file_name=None)
+            checkpoint = torch.load(ckpt_path)['params_ema']
+            self.codeformer_net.load_state_dict(checkpoint)
+            self.codeformer_net.eval()
+        
+        org_w,org_h = img_face.shape[:2]
+        img_face = cv2.resize(img_face, (512, 512), interpolation=cv2.INTER_LINEAR)
+        input_face = img2tensor(img_face / 255., bgr2rgb=True, float32=True)
+        normalize(input_face, (0.5, 0.5, 0.5), (0.5, 0.5, 0.5), inplace=True)
+        input_face = input_face.unsqueeze(0).to(device)
+
+        try:
+            with torch.no_grad():
+                mask = torch.zeros(512, 512)
+                m_ind = torch.sum(input_face[0], dim=0)
+                mask[m_ind==3] = 1.0
+                mask = mask.view(1, 1, 512, 512).to(device)
+                # w is fixed to 1, adain=False for inpainting
+                output_face = self.codeformer_net(input_face, w=1, adain=False)[0]
+                output_face = (1-mask)*input_face + mask*output_face
+                save_face = tensor2img(output_face, rgb2bgr=True, min_max=(-1, 1))
+            del output_face
+            torch.cuda.empty_cache()
+        except Exception as error:
+            print(f'\tFailed inference for CodeFormer: {error}')
+            save_face = tensor2img(input_face, rgb2bgr=True, min_max=(-1, 1))
+        
+        save_face = save_face.astype('uint8')
+        save_face = cv2.resize(save_face,(org_w,org_h),interpolation=cv2.INTER_LINEAR)
+        # print(save_face.shape)
+        # save_face = np.transpose(save_face, (1, 0, 2))
+        return save_face
+        
+
+        
+

@@ -1,5 +1,4 @@
 kaldi_native_fbank
 mediapipe
 opencv_python
-aura-sr
 moviepy
