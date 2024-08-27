@@ -62,9 +62,7 @@ class DHLiveNode:
                 "if_data_preparation":("BOOLEAN",{
                     "default":True
                 }),
-                "if_upscale":("BOOLEAN",{
-                    "default":True
-                }),
+                "upscale":(["None","GFPGANv1.4","CodeFormer","RestoreFormer++"],)
             }
         }
     
@@ -77,7 +75,7 @@ class DHLiveNode:
 
     CATEGORY = "AIFSH_DHLive"
 
-    def generate(self,audio,video,if_data_preparation,if_upscale):
+    def generate(self,audio,video,if_data_preparation,upscale):
         ## 1. data preparation
         video_data_path = os.path.join(work_dir,"video_data")
         if if_data_preparation:
@@ -85,8 +83,6 @@ class DHLiveNode:
             os.makedirs(video_data_path,exist_ok=True)
             video_out_path = os.path.join(video_data_path,"circle.mp4")
             CirculateVideo(video_in_path=video,video_out_path=video_out_path)
-
-        ## 
         
         audioModel = AudioModel()
         audioModel.loadModel(os.path.join(checkpoints_dir,"audio.pkl"))
@@ -119,7 +115,7 @@ class DHLiveNode:
         save_path = os.path.join(task_id_path,"silence.mp4")
         videoWriter = cv2.VideoWriter(save_path, fourcc, 25, (int(vid_width) * 1, int(vid_height)))
         for frame in tqdm(mouth_frame):
-            frame = renderModel.interface(frame,if_upscale=if_upscale)
+            frame = renderModel.interface(frame,upscale=upscale)
             videoWriter.write(frame)
 
         videoWriter.release()
