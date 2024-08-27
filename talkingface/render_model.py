@@ -154,10 +154,10 @@ class RenderModel:
                 self.upscale_net.load_state_dict(checkpoint)
                 self.upscale_net.eval()
         elif model_name == "CodeFormer":
-            pretrain_model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer_inpainting.pth' 
+            pretrain_model_url = 'https://github.com/sczhou/CodeFormer/releases/download/v0.1.0/codeformer.pth' 
             if self.model_name != model_name:
-                self.upscale_net = ARCH_REGISTRY.get('CodeFormer')(dim_embd=512, codebook_size=512, n_head=8, n_layers=9, 
-                                                    connect_list=['32', '64', '128']).to(device)
+                self.upscale_net = ARCH_REGISTRY.get('CodeFormer')(dim_embd=512, codebook_size=1024, n_head=8, n_layers=9, 
+                                                    connect_list=['32', '64', '128',"256"]).to(device)
                 ckpt_path = load_file_from_url(url=pretrain_model_url, 
                                             model_dir=ckpt_dir, progress=True, file_name=None)
                 checkpoint = torch.load(ckpt_path)['params_ema']
