@@ -14,7 +14,7 @@ import cv2
 face_mask = generate_face_mask()
 now_dir = os.path.dirname(os.path.abspath(__file__))
 ckpt_dir = os.path.join(os.path.dirname(now_dir),"checkpoint","upscale")
-sys.path.append(now_dir)
+# sys.path.append(now_dir)
 
 class RenderModel:
     def __init__(self):
@@ -118,7 +118,7 @@ class RenderModel:
         
         img_bg[y_min:y_max, x_min:x_max] = img_face
         self.frame_index += 1
-        return img_bg
+        return img_bg,image_numpy,crop_coords
 
     def save(self, path):
         torch.save(self.__net.state_dict(), path)
