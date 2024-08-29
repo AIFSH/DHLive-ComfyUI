@@ -177,6 +177,7 @@ class DHLiveNode:
             upscale_model.requires_grad_(False)
             # Read the first frame
             frame_buffer = []
+            pre_frame = None
             pre_crop_coords = None
             for i , raw_frame in tqdm(enumerate(mouth_frame)):
                 frame, face_numpy, crop_coords = renderModel.interface(raw_frame,upscale="None")
@@ -189,26 +190,27 @@ class DHLiveNode:
                     frame_buffer.append(face_frame)
                     if len(frame_buffer) == 3:
                         processed_frame = apply_net_to_frames(frame_buffer, upscale_model)
-                        processed_face_numpy = cv2.resize(processed_frame, (256,256), interpolation=cv2.INTER_LINEAR)
+                        # processed_face_numpy = cv2.resize(processed_frame, (256,256), interpolation=cv2.INTER_LINEAR)
                         x_min, y_min, x_max, y_max = pre_crop_coords
 
-                        img_face = cv2.resize(processed_face_numpy, (x_max - x_min, y_max - y_min))
+                        img_face = cv2.resize(processed_frame, (x_max - x_min, y_max - y_min),interpolation=cv2.INTER_LINEAR)
                         
-                        frame[y_min:y_max, x_min:x_max] = img_face
-                        videoWriter.write(frame)
+                        pre_frame[y_min:y_max, x_min:x_max] = img_face
+                        videoWriter.write(pre_frame)
                         # Remove the first frame from the buffer and continue
                         frame_buffer.pop(0)
                 pre_crop_coords = crop_coords
+                pre_frame = frame
             
             # Process the last two frames (when padding a frame is needed)
             if len(frame_buffer) == 2:
                 frame_buffer.append(frame_buffer[-1])  # Pad the last frame
                 processed_frame = apply_net_to_frames(frame_buffer, upscale_model)
-                processed_face_numpy = cv2.resize(processed_frame, (256,256), interpolation=cv2.INTER_LINEAR)
+                # processed_face_numpy = cv2.resize(processed_frame, (256,256), interpolation=cv2.INTER_LINEAR)
                 x_min, y_min, x_max, y_max = pre_crop_coords
-                img_face = cv2.resize(processed_face_numpy, (x_max - x_min, y_max - y_min))
-                frame[y_min:y_max, x_min:x_max] = img_face
-                videoWriter.write(frame)
+                img_face = cv2.resize(processed_frame, (x_max - x_min, y_max - y_min),interpolation=cv2.INTER_LINEAR)
+                pre_frame[y_min:y_max, x_min:x_max] = img_face
+                videoWriter.write(pre_frame)
         else:
             for frame in tqdm(mouth_frame):
                 frame,_,_ = renderModel.interface(frame,upscale=upscale)
