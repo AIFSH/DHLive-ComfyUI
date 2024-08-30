@@ -75,7 +75,7 @@ class RenderModel:
 
 
 
-    def interface(self, mouth_frame,upscale):
+    def interface(self, mouth_frame,upscale,padding=256):
         vid_frame_count = self.__cap_input.get(cv2.CAP_PROP_FRAME_COUNT)
         if self.frame_index % vid_frame_count == 0:
             self.__cap_input.set(cv2.CAP_PROP_POS_FRAMES, 0)  # 设置要获取的帧号
@@ -106,19 +106,33 @@ class RenderModel:
 
         image_numpy = target_img * face_mask + image_numpy * (1 - face_mask)
         
-        if upscale != "None":
-            upscale_image_numpy = self.face_upscale(upscale,image_numpy)
-        else:
-            upscale_image_numpy = image_numpy
-
         img_bg = frame
         x_min, y_min, x_max, y_max = crop_coords
+
+        img_face = cv2.resize(image_numpy, (x_max - x_min, y_max - y_min))
+        
+        img_bg[y_min:y_max, x_min:x_max] = img_face
+
+
+        y_mid = (y_max + y_min) // 2
+        x_mid = (x_max + x_min) // 2
+        x_min = max(0,x_mid-padding)
+        x_max = min(x_mid+padding,img_bg.shape[1])
+        y_min = max(0,y_mid-padding*5 //3)
+        y_max = min(y_mid+padding//3,img_bg.shape[0])
+        face_image = img_bg[y_min:y_max,x_min:x_max]
+        crop_coords = (x_min, y_min, x_max, y_max )
+
+        if upscale != "None":
+            upscale_image_numpy = self.face_upscale(upscale,face_image)
+        else:
+            upscale_image_numpy = face_image
 
         img_face = cv2.resize(upscale_image_numpy, (x_max - x_min, y_max - y_min))
         
         img_bg[y_min:y_max, x_min:x_max] = img_face
         self.frame_index += 1
-        return img_bg,image_numpy,crop_coords
+        return img_bg,face_image,crop_coords
 
     def save(self, path):
         torch.save(self.__net.state_dict(), path)

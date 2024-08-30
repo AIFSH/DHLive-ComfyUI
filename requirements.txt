@@ -2,3 +2,5 @@ kaldi_native_fbank
 mediapipe
 opencv_python
 moviepy
+cupy-cuda12x
+# diffusers==0.11.1
