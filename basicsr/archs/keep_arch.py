@@ -17,8 +17,11 @@ from .arch_util import flow_warp, resize_flow
 from .pwcnet_arch import FlowGenerator
 from basicsr.utils import get_root_logger
 from basicsr.utils.registry import ARCH_REGISTRY
+import os,sys
+now_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(now_dir)
 
-from diffusers.models.attention import CrossAttention, FeedForward, AdaLayerNorm
+from diffusers011.models.attention import CrossAttention, FeedForward, AdaLayerNorm
 
 # gpu_tracker = MemTracker()
 

@@ -13,6 +13,7 @@ import numpy as np
 from talkingface.render_model import RenderModel
 from talkingface.audio_model import AudioModel
 
+
 checkpoints_dir = os.path.join(now_dir,"checkpoint")
 
 class StaticVideo:
@@ -98,6 +99,8 @@ import torch
 from PIL import Image
 from torchvision.transforms.functional import normalize
 from basicsr.utils import imwrite, img2tensor, tensor2img
+from basicsr.utils.download_util import load_file_from_url 
+from basicsr.utils.registry import ARCH_REGISTRY
 
 prompt_sr = 16000
 class DHLiveNode:
@@ -183,8 +186,6 @@ class DHLiveNode:
             ooo = opt['network_g']
             print(ooo)
             # from talkingface.basicsr.archs.pgtformer_arch import PGTFormer
-            
-            from basicsr.utils.registry import ARCH_REGISTRY
             # upscale_model = PGTFormer(**ooo).cuda()
             upscale_model = ARCH_REGISTRY.get("PGTFormer")(**ooo).cuda()
             state_dict = torch.load(os.path.join(checkpoints_dir,"upscale","PGTFormer.pth"))
@@ -256,9 +257,6 @@ class DHLiveNode:
                     frame =  cv2.resize(frame, (width, height),interpolation=cv2.INTER_LINEAR)
                     image_frame_list.append(Image.fromarray(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)))
             if upscale == "KEEP":
-                from basicsr.utils import tensor2img
-                from basicsr.utils.download_util import load_file_from_url 
-                from basicsr.utils.registry import ARCH_REGISTRY
                 # ------------------ set up restorer -------------------
                 net = ARCH_REGISTRY.get('KEEP')(img_size=512, emb_dim=256, dim_embd=512,
                                 n_head=8, n_layers=9, codebook_size=1024, connect_list=['16', '32', '64'],
