@@ -253,9 +253,10 @@ class DHLiveNode:
                 else:
                     frame,face_img,coords = renderModel.interface(frame,upscale=upscale,padding=padding)
                     videoWriter.write(frame)
-                if if_RIFE:
-                    frame =  cv2.resize(frame, (width, height),interpolation=cv2.INTER_LINEAR)
-                    image_frame_list.append(Image.fromarray(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)))
+                    if if_RIFE:
+                        frame =  cv2.resize(frame, (width, height),interpolation=cv2.INTER_LINEAR)
+                        image_frame_list.append(Image.fromarray(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)))
+                        
             if upscale == "KEEP":
                 # ------------------ set up restorer -------------------
                 net = ARCH_REGISTRY.get('KEEP')(img_size=512, emb_dim=256, dim_embd=512,
@@ -301,6 +302,9 @@ class DHLiveNode:
                     img_face = cv2.resize(face, (x_max - x_min, y_max - y_min),interpolation=cv2.INTER_LINEAR)
                     frame[y_min:y_max, x_min:x_max] = img_face
                     videoWriter.write(frame)
+                    if if_RIFE:
+                        frame =  cv2.resize(frame, (width, height),interpolation=cv2.INTER_LINEAR)
+                        image_frame_list.append(Image.fromarray(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)))
 
         videoWriter.release()
         if if_RIFE:
