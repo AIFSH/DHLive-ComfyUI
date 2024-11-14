@@ -1,6 +1,9 @@
 # DHLive-ComfyUI
 a comfyui custom node for [DH_live](https://github.com/kleinlee/DH_live.git)
 
+## Disclaimer / 免责声明
+We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws. 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
+
 ## How to use
 test on py3.10，2080ti 11gb，torch==2.3.0+cu121
 
